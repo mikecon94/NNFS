@@ -1,10 +1,8 @@
 import numpy as np
 import nnfs
-from nnfs.datasets import spiral_data
 
-nnfs.init()
-
-class Layer_Dense:  
+class Layer_Dense:
+    
     def __init__(self, n_inputs, n_neurons):
         # Initialize weights and biases.
         # Weights are (inputs, neurons) rather than (neurons, inputs)
@@ -20,13 +18,7 @@ class Layer_Dense:
         # Calculate output values from inputs, weights and biases.
         self.output = np.dot(inputs, self.weights) + self.biases
 
-# Create dataset
-X, y = spiral_data(samples = 100, classes = 3)
+nnfs.init()
 
-# Create Dense Layer with 2 input features & 3 output values (neurons).
-dense1 = Layer_Dense(2, 3)
-
-# Perform Forward Pass of the training data through this layer.
-dense1.forward(X)
-
-print(dense1.output[:5])
+layer = Layer_Dense(2, 4)
+print(layer.weights, layer.biases)
