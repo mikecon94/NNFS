@@ -20,13 +20,25 @@ class Layer_Dense:
         # Calculate output values from inputs, weights and biases.
         self.output = np.dot(inputs, self.weights) + self.biases
 
+# ReLU Activation
+class Activation_ReLU:
+    def forward(self, inputs):
+        self.output = np.maximum(0, inputs)
+
 # Create dataset
 X, y = spiral_data(samples = 100, classes = 3)
 
 # Create Dense Layer with 2 input features & 3 output values (neurons).
 dense1 = Layer_Dense(2, 3)
 
+# Create ReLU activation to be used with Dense Layer
+activation1 = Activation_ReLU()
+
 # Perform Forward Pass of the training data through this layer.
 dense1.forward(X)
 
-print(dense1.output[:5])
+# Forward pass through activation func.
+# Uses output from previous layer.
+activation1.forward(dense1.output)
+
+print(activation1.output[:5])
