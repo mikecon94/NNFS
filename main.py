@@ -25,6 +25,14 @@ class Activation_ReLU:
     def forward(self, inputs):
         self.output = np.maximum(0, inputs)
 
+class Activation_Softmax:
+    def forward(self, inputs):
+        # Get unnormalized probabilities
+        exp_values = np.exp(inputs - np.max(inputs, axis=1, keepdims=True))
+        # Normalize them for each sample
+        probabilities = exp_values / np.sum(exp_values, axis=1, keepdims=True)
+        self.output = probabilities
+
 # Create dataset
 X, y = spiral_data(samples = 100, classes = 3)
 
@@ -34,11 +42,26 @@ dense1 = Layer_Dense(2, 3)
 # Create ReLU activation to be used with Dense Layer
 activation1 = Activation_ReLU()
 
+# Create second Dense layer with 3 input features (output of previous layer)
+# and 3 output values.
+dense2 = Layer_Dense(3, 3)
+
+# Create Softmax activation (use with dense2 layer)
+activation2 = Activation_Softmax()
+
 # Perform Forward Pass of the training data through this layer.
 dense1.forward(X)
 
 # Forward pass through activation func.
-# Uses output from previous layer.
+# Takes output of first dense layer.
 activation1.forward(dense1.output)
 
-print(activation1.output[:5])
+# Forward pass through second Dense layer.
+# Takes output of activation function from layer 1.
+dense2.forward(activation1.output)
+
+# Forward pass through activation2 function (softmax) 
+# Takes output of 2nd dense layer as input.
+activation2.forward(dense2.output)
+
+print(activation2.output[:5])
