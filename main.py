@@ -67,6 +67,8 @@ class Loss_CategoricalCrossEntropy(Loss):
         return negative_log_likelihoods
 
 # Create dataset
+# X is coordinates
+# y is the class
 X, y = spiral_data(samples = 100, classes = 3)
 
 # Create Dense Layer with 2 input features & 3 output values (neurons).
@@ -81,6 +83,9 @@ dense2 = Layer_Dense(3, 3)
 
 # Create Softmax activation (use with dense2 layer)
 activation2 = Activation_Softmax()
+
+# Define loss function
+loss_function = Loss_CategoricalCrossEntropy()
 
 # Perform Forward Pass of the training data through this layer.
 dense1.forward(X)
@@ -99,15 +104,16 @@ activation2.forward(dense2.output)
 
 print(activation2.output[:5])
 
+# Loss Calculation
+# Forward pass through loss function
+# Takes output of second dense layer and returns loss.
+loss = loss_function.calculate(activation2.output, y)
+print("Loss:", loss)
 
+# Accuracy
 
-# Calculating example loss
-softmax_outputs = np.array([[0.7, 0.1, 0.2],
-                            [0.1, 0.5, 0.4],
-                            [0.02, 0.9, 0.08]])
-class_targets = np.array([[1, 0, 0],
-                          [0, 1, 0],
-                          [0, 1, 0]])
-loss_function = Loss_CategoricalCrossEntropy()
-loss = loss_function.calculate(softmax_outputs, class_targets)
-print("Example Loss:",loss)
+predictions = np.argmax(activation2.output, axis=1)
+if len(y.shape) == 2:
+    y = np.argmax(y, axis=1)
+accuracy = np.mean(predictions == y)
+print("Accuracy:", accuracy)
