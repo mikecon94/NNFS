@@ -32,6 +32,39 @@ class Activation_Softmax:
         # Normalize them for each sample
         probabilities = exp_values / np.sum(exp_values, axis=1, keepdims=True)
         self.output = probabilities
+        
+# Base/Common Loss Class
+class Loss:
+    # Calculates the data and regularization losses.
+    # given model output and ground truth values.
+    def calculate(self, output, y):
+        sample_losses = self.forward(output, y)
+        data_loss = np.mean(sample_losses)
+        return data_loss
+
+# Cross Entropy Loss
+class Loss_CategoricalCrossEntropy(Loss):
+    def forward(self, y_pred, y_true):
+        # Number of samples in a batch.
+        samples = len(y_pred)
+
+        # Clip data at both sides to prevent division by 0
+        # And avoid dragging the mean towards a value.
+        y_pred_clipped = np.clip(y_pred, 1e-7, 1-1e-7)
+
+        # Probabilities for target values:
+        # If categorical labels
+        if len(y_true.shape) == 1:
+            correct_confidences = y_pred_clipped[
+                                    range(samples),
+                                    y_true   
+                                  ]
+        elif len(y_true.shape) == 2:
+            correct_confidences = np.sum(y_pred_clipped * y_true, axis=1)
+
+        # Losses
+        negative_log_likelihoods = -np.log(correct_confidences)
+        return negative_log_likelihoods
 
 # Create dataset
 X, y = spiral_data(samples = 100, classes = 3)
@@ -65,3 +98,16 @@ dense2.forward(activation1.output)
 activation2.forward(dense2.output)
 
 print(activation2.output[:5])
+
+
+
+# Calculating example loss
+softmax_outputs = np.array([[0.7, 0.1, 0.2],
+                            [0.1, 0.5, 0.4],
+                            [0.02, 0.9, 0.08]])
+class_targets = np.array([[1, 0, 0],
+                          [0, 1, 0],
+                          [0, 1, 0]])
+loss_function = Loss_CategoricalCrossEntropy()
+loss = loss_function.calculate(softmax_outputs, class_targets)
+print("Example Loss:",loss)
