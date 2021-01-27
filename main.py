@@ -19,12 +19,26 @@ class Layer_Dense:
     
     def forward(self, inputs):
         # Calculate output values from inputs, weights and biases.
+        self.inputs = inputs
         self.output = np.dot(inputs, self.weights) + self.biases
+
+    def backward(self, dvalues):
+        # Gradients on parameters
+        self.dweights = np.dot(self.inputs.T, dvalues)
+        self.dbiases = np.sum(dvalues, axis=0, keepdims=True)
+        # Gradient on Values / Inputs
+        self.dinputs = np.dot(dvalues, self.weights.T)
 
 # ReLU Activation
 class Activation_ReLU:
     def forward(self, inputs):
+        self.inputs = inputs
         self.output = np.maximum(0, inputs)
+    def backward(self, dvalues):
+        # Gradient with respect to inputs on ReLU.
+        # Copy next layer and zero out values where the input was less than 0.
+        self.dinputs = dvalues.copy()
+        self.dinputs[self.inputs <= 0] = 0
 
 class Activation_Softmax:
     def forward(self, inputs):
