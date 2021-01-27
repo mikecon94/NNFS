@@ -1,71 +1,30 @@
-# We will start with a single neuron ReLU Activation
+import numpy as np
 
-x = [1.0, -2.0, 3.0] # input values
-w = [-3.0, -1.0, 2.0] # weights
-b = 1.0 # bias
+# Passed-in gradient from the next layer
+# for the purpose of this example we're going to use
+# a vector of 1s
+dvalues = np.array([[1., 1., 1.]])
 
-# Multiply input by the weight
-xw0 = x[0] * w[0]
-xw1 = x[1] * w[1]
-xw2 = x[2] * w[2]
-print("Weighted Inputs:", xw0, xw1, xw2)
+# We have 3 sets of weights - one set for each neuron
+# we have 4 inputs, thus 4 weights
+# recall that we keep weights transposed
+weights = np.array([[0.2, 0.8, -0.5, 1],
+                    [0.5, -0.91, 0.26, -0.5],
+                    [-0.26, -0.27, 0.17, 0.87]]).T
 
-# Next sum of all weighted inputs with a bias
-z = xw0 + xw1 + xw2 + b
-print("Sum of Weights Inputs & Bias:", z)
+# Weights are transposed so the layer receives derivatives with respect to inputs
+# As opposed to neuron weights.
+#print(weights)
 
-# Apply ReLU
-y = max(z, 0)
-print("ReLU:", y)
+# Sum weights related to the given input multiplied by
+# the gradient related to the given neuron
+# dx0 = sum([weights[0][0]*dvalues[0][0],
+#            weights[0][1]*dvalues[0][1],
+#            weights[0][2]*dvalues[0][2]])
+#dx0 = sum(weights[0]*dvalues[0])
+#dinputs = np.array([dx0, dx1, dx2, dx3])
 
-# Backward Pass
+dinputs = np.dot(dvalues[0], weights.T)
 
-# Derivative from next layer
-dvalue = 1.0
-
-# Derivative of ReLU and the chain rule
-drelu_dz = dvalue * (1. if z > 0 else 0.)
-print("Derivative of ReLU:", drelu_dz)
-
-# Partial derivative of the sum wrt the x input
-# weighted, for the 0th pair of inputs and weights.
-# 1 is the value of this partial derivative, which we multiply
-# using hte chain rule. Weight the derivative of the subsequent function:
-# The ReLU function.
-dsum_dxw0 = 1
-drelu_dxw0 = drelu_dz * dsum_dxw0
-print("Partial Derivative of sum function wrt 1st weighted input:", drelu_dxw0)
-
-# We then do the same operation with the next weighted inputs:
-dsum_dxw1 = 1
-drelu_dxw1 = drelu_dz * dsum_dxw1
-print("Partial Derivative of sum function wrt 2nd weighted input:", drelu_dxw1)
-
-dsum_dxw2 = 1
-drelu_dxw2 = drelu_dz * dsum_dxw1
-print("Partial Derivative of sum function wrt 3rd weighted input:", drelu_dxw2)
-
-# Now the bias
-dsum_db = 1
-drelu_db = drelu_dz * dsum_db
-print("Partial Derivative of sum function wrt bias:", drelu_db)
-
-# Continuing backwards. Function before sum is multiplication of weights and inputs.
-dmul_dx0 = w[0]
-drelu_dx0 = drelu_dxw0 * dmul_dx0
-print("Partial Derivative of the multiplication wrt x0:", drelu_dx0)
-
-# Repeat for other inputs and weights
-dmul_dx0 = w[0]
-dmul_dx1 = w[1]
-dmul_dx2 = w[2]
-dmul_dw0 = x[0]
-dmul_dw1 = x[1]
-dmul_dw2 = x[2]
-drelu_dx0 = drelu_dxw0 * dmul_dx0
-drelu_dw0 = drelu_dxw0 * dmul_dw0
-drelu_dx1 = drelu_dxw1 * dmul_dx1
-drelu_dw1 = drelu_dxw1 * dmul_dw1
-drelu_dx2 = drelu_dxw2 * dmul_dx2
-drelu_dw2 = drelu_dxw2 * dmul_dw2
-print(drelu_dx0, drelu_dw0, drelu_dx1, drelu_dw1, drelu_dx2, drelu_dw2)
+# dinputs is a gradient of the neuron function with respect to inputs.
+print(dinputs)
