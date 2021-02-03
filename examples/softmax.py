@@ -64,3 +64,7 @@ print(softmax.output)
 # Subtract max (3) from each value and get the same result.
 softmax.forward([[-2, -1, 0]])
 print(softmax.output)
+
+
+
+# BACKWARDS PASS - PAGE 226
