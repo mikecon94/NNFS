@@ -159,12 +159,6 @@ activation1 = Activation_ReLU()
 # and 3 output values.
 dense2 = Layer_Dense(3, 3)
 
-# Create Softmax activation (use with dense2 layer)
-activation2 = Activation_Softmax()
-
-# Define loss function
-loss_function = Loss_CategoricalCrossEntropy()
-
 # Perform Forward Pass of the training data through this layer.
 dense1.forward(X)
 
@@ -176,46 +170,29 @@ activation1.forward(dense1.output)
 # Takes output of activation function from layer 1.
 dense2.forward(activation1.output)
 
-# Forward pass through activation2 function (softmax) 
-# Takes output of 2nd dense layer as input.
-activation2.forward(dense2.output)
+# Create Softmax Classifier's combined loss and activation
+loss_activation = Activation_Softmax_Loss_CategoricalCrossEntropy()
 
-print(activation2.output[:5])
-
-# Loss Calculation
-# Forward pass through loss function
-# Takes output of second dense layer and returns loss.
-loss = loss_function.calculate(activation2.output, y)
+# Perform a Forward pass through the activation/loss function
+# Takes the output of second dense layer here and return loss.
+loss = loss_activation.forward(dense2.output, y)
 print("Loss:", loss)
 
 # Accuracy
 
-predictions = np.argmax(activation2.output, axis=1)
+predictions = np.argmax(loss_activation.output, axis=1)
 if len(y.shape) == 2:
     y = np.argmax(y, axis=1)
 accuracy = np.mean(predictions == y)
 print("Accuracy:", accuracy)
 
-
-
-# Comparing Backpropagation of Softmax Activation with 
-# CC Entropy loss combined
-softmax_outputs = np.array([[0.7, 0.1, 0.2],
-                            [0.1, 0.5, 0.4],
-                            [0.02, 0.9, 0.08]])
-class_targets = np.array([0, 1, 1])
-
-softmax_loss = Activation_Softmax_Loss_CategoricalCrossEntropy()
-softmax_loss.backward(softmax_outputs, class_targets)
-combinedLoss = softmax_loss.dinputs
-
-activation = Activation_Softmax()
-activation.output = softmax_outputs
-loss = Loss_CategoricalCrossEntropy()
-loss.backward(softmax_outputs, class_targets)
-activation.backward(loss.dinputs)
-separateLoss = activation.dinputs
-print('Gradients: combined loss and activation:')
-print(combinedLoss)
-print('Gradients: separate loss and activation:')
-print(separateLoss)
+# Backward Pass
+loss_activation.backward(loss_activation.output, y)
+dense2.backward(loss_activation.dinputs)
+activation1.backward(dense2.dinputs)
+dense1.backward(activation1.dinputs)
+# Print Gradients
+print(dense1.dweights)
+print(dense1.dbiases)
+print(dense2.dweights)
+print(dense2.dbiases)
