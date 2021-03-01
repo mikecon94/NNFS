@@ -34,6 +34,7 @@ class Activation_ReLU:
     def forward(self, inputs):
         self.inputs = inputs
         self.output = np.maximum(0, inputs)
+
     def backward(self, dvalues):
         # Gradient with respect to inputs on ReLU.
         # Copy next layer and zero out values where the input was less than 0.
@@ -113,9 +114,35 @@ class Loss_CategoricalCrossEntropy(Loss):
         self.dinputs = -y_true /dvalues
         # Normalize gradient
         self.dinputs = self.dinputs / samples
-
-
         return 1
+
+# Softmax Classifier - Combined Softmax activation
+# with cross-entropy loss for faster backward step.
+class Activation_Softmax_Loss_CategoricalCrossEntropy():
+    def __init__(self):
+        self.activation = Activation_Softmax()
+        self.loss = Loss_CategoricalCrossEntropy()
+    
+    def forward(self, inputs, y_true):
+        self.activation.forward(inputs)
+        self.output = self.activation.output
+        # Calculate & Return loss value
+        return self.loss.calculate(self.output, y_true)
+    
+    def backward(self, dvalues, y_true):
+        # No. of samples
+        samples = len(dvalues)
+        # If labels are one-hot encoded
+        # Turn them into discrete values
+        if len(y_true.shape) == 2:
+            y_true = np.argmax(y_true, axis=1)
+        
+        # Copy so we can modify
+        self.dinputs = dvalues.copy()
+        # Calculate gradient
+        self.dinputs[range(samples), y_true] -= 1
+        # Normalize gradient
+        self.dinputs = self.dinputs / samples
 
 # Create dataset
 # X is coordinates
@@ -168,3 +195,27 @@ if len(y.shape) == 2:
     y = np.argmax(y, axis=1)
 accuracy = np.mean(predictions == y)
 print("Accuracy:", accuracy)
+
+
+
+# Comparing Backpropagation of Softmax Activation with 
+# CC Entropy loss combined
+softmax_outputs = np.array([[0.7, 0.1, 0.2],
+                            [0.1, 0.5, 0.4],
+                            [0.02, 0.9, 0.08]])
+class_targets = np.array([0, 1, 1])
+
+softmax_loss = Activation_Softmax_Loss_CategoricalCrossEntropy()
+softmax_loss.backward(softmax_outputs, class_targets)
+combinedLoss = softmax_loss.dinputs
+
+activation = Activation_Softmax()
+activation.output = softmax_outputs
+loss = Loss_CategoricalCrossEntropy()
+loss.backward(softmax_outputs, class_targets)
+activation.backward(loss.dinputs)
+separateLoss = activation.dinputs
+print('Gradients: combined loss and activation:')
+print(combinedLoss)
+print('Gradients: separate loss and activation:')
+print(separateLoss)
