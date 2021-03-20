@@ -161,15 +161,21 @@ class Optimizer_SGD:
 # y is the class
 X, y = spiral_data(samples = 100, classes = 3)
 
-# Create Dense Layer with 2 input features & 3 output values (neurons).
-dense1 = Layer_Dense(2, 3)
+# Create Dense Layer with 2 input features & 64 output values (neurons).
+dense1 = Layer_Dense(2, 64)
 
 # Create ReLU activation to be used with Dense Layer
 activation1 = Activation_ReLU()
 
-# Create second Dense layer with 3 input features (output of previous layer)
+# Create second Dense layer with 64 input features (output of previous layer)
 # and 3 output values.
-dense2 = Layer_Dense(3, 3)
+dense2 = Layer_Dense(64, 3)
+
+# Create Softmax Classifier's combined loss and activation
+loss_activation = Activation_Softmax_Loss_CategoricalCrossEntropy()
+
+# Create Optimizer
+optimizer = Optimizer_SGD()
 
 # Perform Forward Pass of the training data through this layer.
 dense1.forward(X)
@@ -182,37 +188,34 @@ activation1.forward(dense1.output)
 # Takes output of activation function from layer 1.
 dense2.forward(activation1.output)
 
-# Create Softmax Classifier's combined loss and activation
-loss_activation = Activation_Softmax_Loss_CategoricalCrossEntropy()
 
 # Perform a Forward pass through the activation/loss function
 # Takes the output of second dense layer here and return loss.
 loss = loss_activation.forward(dense2.output, y)
 print("Loss:", loss)
 
-# Accuracy
-
+# Calculate accuracy from output of activation2 and targets.
+# Calculate values along first axis.
 predictions = np.argmax(loss_activation.output, axis=1)
 if len(y.shape) == 2:
     y = np.argmax(y, axis=1)
 accuracy = np.mean(predictions == y)
 print("Accuracy:", accuracy)
 
-# Backward Pass
+# Backward Pass - Backpropagation.
 loss_activation.backward(loss_activation.output, y)
 dense2.backward(loss_activation.dinputs)
 activation1.backward(dense2.dinputs)
 dense1.backward(activation1.dinputs)
 
 # Print Gradients
-print("Dense 1 Weights Gradients:\n", dense1.dweights)
-print("Dense 1 Biases Gradients:\n",dense1.dbiases)
-print("Dense 2 Weights Gradients:\n",dense2.dweights)
-print("Dense 2 Biases Gradients:\n",dense2.dbiases)
+# print("Dense 1 Weights Gradients:\n", dense1.dweights)
+# print("Dense 1 Biases Gradients:\n",dense1.dbiases)
+# print("Dense 2 Weights Gradients:\n",dense2.dweights)
+# print("Dense 2 Biases Gradients:\n",dense2.dbiases)
 
 # Apply optimized weights & biases to the 2 layers.
 # The layers store their parameters and gradients (calculated during backpropagation).
-optimizer = Optimizer_SGD()
 optimizer.update_params(dense1)
 optimizer.update_params(dense2)
 
