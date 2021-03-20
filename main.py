@@ -177,45 +177,51 @@ loss_activation = Activation_Softmax_Loss_CategoricalCrossEntropy()
 # Create Optimizer
 optimizer = Optimizer_SGD()
 
-# Perform Forward Pass of the training data through this layer.
-dense1.forward(X)
+# Train in loop
+for epoch in range(10001):
 
-# Forward pass through activation func.
-# Takes output of first dense layer.
-activation1.forward(dense1.output)
+    # Perform Forward Pass of the training data through this layer.
+    dense1.forward(X)
 
-# Forward pass through second Dense layer.
-# Takes output of activation function from layer 1.
-dense2.forward(activation1.output)
+    # Forward pass through activation func.
+    # Takes output of first dense layer.
+    activation1.forward(dense1.output)
+
+    # Forward pass through second Dense layer.
+    # Takes output of activation function from layer 1.
+    dense2.forward(activation1.output)
 
 
-# Perform a Forward pass through the activation/loss function
-# Takes the output of second dense layer here and return loss.
-loss = loss_activation.forward(dense2.output, y)
-print("Loss:", loss)
+    # Perform a Forward pass through the activation/loss function
+    # Takes the output of second dense layer here and return loss.
+    loss = loss_activation.forward(dense2.output, y)
+    # print("Loss:", loss)
 
-# Calculate accuracy from output of activation2 and targets.
-# Calculate values along first axis.
-predictions = np.argmax(loss_activation.output, axis=1)
-if len(y.shape) == 2:
-    y = np.argmax(y, axis=1)
-accuracy = np.mean(predictions == y)
-print("Accuracy:", accuracy)
+    # Calculate accuracy from output of activation2 and targets.
+    # Calculate values along first axis.
+    predictions = np.argmax(loss_activation.output, axis=1)
+    if len(y.shape) == 2:
+        y = np.argmax(y, axis=1)
+    accuracy = np.mean(predictions == y)
+    # print("Accuracy:", accuracy)
 
-# Backward Pass - Backpropagation.
-loss_activation.backward(loss_activation.output, y)
-dense2.backward(loss_activation.dinputs)
-activation1.backward(dense2.dinputs)
-dense1.backward(activation1.dinputs)
+    if not epoch % 100:
+        print(f'epoch: {epoch}, acc: {accuracy:.3f}, loss: {loss:.3f}')
 
-# Print Gradients
-# print("Dense 1 Weights Gradients:\n", dense1.dweights)
-# print("Dense 1 Biases Gradients:\n",dense1.dbiases)
-# print("Dense 2 Weights Gradients:\n",dense2.dweights)
-# print("Dense 2 Biases Gradients:\n",dense2.dbiases)
+    # Backward Pass - Backpropagation.
+    loss_activation.backward(loss_activation.output, y)
+    dense2.backward(loss_activation.dinputs)
+    activation1.backward(dense2.dinputs)
+    dense1.backward(activation1.dinputs)
 
-# Apply optimized weights & biases to the 2 layers.
-# The layers store their parameters and gradients (calculated during backpropagation).
-optimizer.update_params(dense1)
-optimizer.update_params(dense2)
+    # Print Gradients
+    # print("Dense 1 Weights Gradients:\n", dense1.dweights)
+    # print("Dense 1 Biases Gradients:\n",dense1.dbiases)
+    # print("Dense 2 Weights Gradients:\n",dense2.dweights)
+    # print("Dense 2 Biases Gradients:\n",dense2.dbiases)
+
+    # Apply optimized weights & biases to the 2 layers.
+    # The layers store their parameters and gradients (calculated during backpropagation).
+    optimizer.update_params(dense1)
+    optimizer.update_params(dense2)
 
