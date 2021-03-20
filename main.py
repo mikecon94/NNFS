@@ -144,6 +144,18 @@ class Activation_Softmax_Loss_CategoricalCrossEntropy():
         # Normalize gradient
         self.dinputs = self.dinputs / samples
 
+class Optimizer_SGD:
+    
+    # Initialize optimizer - set settings,
+    # learning rate of 1. Default.
+    def __init__(self, learning_rate=1.0):
+        self.learning_rate = learning_rate
+    
+    # Update parameters
+    def update_params(self, layer):
+        layer.weights += -self.learning_rate * layer.dweights
+        layer.biases += -self.learning_rate * layer.dbiases
+
 # Create dataset
 # X is coordinates
 # y is the class
@@ -191,8 +203,16 @@ loss_activation.backward(loss_activation.output, y)
 dense2.backward(loss_activation.dinputs)
 activation1.backward(dense2.dinputs)
 dense1.backward(activation1.dinputs)
+
 # Print Gradients
-print(dense1.dweights)
-print(dense1.dbiases)
-print(dense2.dweights)
-print(dense2.dbiases)
+print("Dense 1 Weights Gradients:\n", dense1.dweights)
+print("Dense 1 Biases Gradients:\n",dense1.dbiases)
+print("Dense 2 Weights Gradients:\n",dense2.dweights)
+print("Dense 2 Biases Gradients:\n",dense2.dbiases)
+
+# Apply optimized weights & biases to the 2 layers.
+# The layers store their parameters and gradients (calculated during backpropagation).
+optimizer = Optimizer_SGD()
+optimizer.update_params(dense1)
+optimizer.update_params(dense2)
+
