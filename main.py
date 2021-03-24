@@ -145,16 +145,25 @@ class Activation_Softmax_Loss_CategoricalCrossEntropy():
         self.dinputs = self.dinputs / samples
 
 class Optimizer_SGD:
-    
     # Initialize optimizer - set settings,
     # learning rate of 1. Default.
-    def __init__(self, learning_rate=1.0):
+    def __init__(self, learning_rate=1., decay=0):
         self.learning_rate = learning_rate
+        self.decay = decay
+        self.current_learning_rate = learning_rate
+        self.iterations = 0
     
-    # Update parameters
+    def pre_update_params(self):
+        if self.decay:
+            self.current_learning_rate = self.learning_rate * \
+                        (1. / (1. + self.decay * self.iterations))
+
     def update_params(self, layer):
-        layer.weights += -self.learning_rate * layer.dweights
-        layer.biases += -self.learning_rate * layer.dbiases
+        layer.weights += -self.current_learning_rate * layer.dweights
+        layer.biases += -self.current_learning_rate * layer.dbiases
+
+    def post_update_params(self):
+        self.iterations += 1
 
 # Create dataset
 # X is coordinates
@@ -175,7 +184,7 @@ dense2 = Layer_Dense(64, 3)
 loss_activation = Activation_Softmax_Loss_CategoricalCrossEntropy()
 
 # Create Optimizer
-optimizer = Optimizer_SGD()
+optimizer = Optimizer_SGD(decay=1e-2)
 
 # Train in loop
 for epoch in range(10001):
@@ -205,8 +214,11 @@ for epoch in range(10001):
     accuracy = np.mean(predictions == y)
     # print("Accuracy:", accuracy)
 
-    if not epoch % 100:
-        print(f'epoch: {epoch}, acc: {accuracy:.3f}, loss: {loss:.3f}')
+    if epoch % 100 == 0:
+        print(f'Epoch: {epoch}, ' + 
+              f'Acc: {accuracy:.3f}, ' +
+              f'Loss: {loss:.3f}, ' +
+              f'LR: {optimizer.current_learning_rate}, ')
 
     # Backward Pass - Backpropagation.
     loss_activation.backward(loss_activation.output, y)
@@ -222,6 +234,7 @@ for epoch in range(10001):
 
     # Apply optimized weights & biases to the 2 layers.
     # The layers store their parameters and gradients (calculated during backpropagation).
+    optimizer.pre_update_params()
     optimizer.update_params(dense1)
     optimizer.update_params(dense2)
-
+    optimizer.post_update_params()
