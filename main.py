@@ -1,7 +1,6 @@
 import numpy as np
 import nnfs
 from nnfs.datasets import spiral_data
-from nnfs.datasets import vertical_data
 
 nnfs.init()
 
@@ -43,6 +42,7 @@ class Activation_ReLU:
 
 class Activation_Softmax:
     def forward(self, inputs):
+        self.inputs = inputs
         # Get unnormalized probabilities
         exp_values = np.exp(inputs - np.max(inputs, axis=1, keepdims=True))
         # Normalize them for each sample
@@ -147,7 +147,7 @@ class Activation_Softmax_Loss_CategoricalCrossEntropy():
 class Optimizer_SGD:
     # Initialize optimizer - set settings,
     # learning rate of 1. Default.
-    def __init__(self, learning_rate=1.0, decay=0, momentum=0.):
+    def __init__(self, learning_rate=1., decay=0., momentum=0.):
         self.learning_rate = learning_rate
         self.decay = decay
         self.current_learning_rate = learning_rate
@@ -211,7 +211,7 @@ dense2 = Layer_Dense(64, 3)
 loss_activation = Activation_Softmax_Loss_CategoricalCrossEntropy()
 
 # Create Optimizer
-optimizer = Optimizer_SGD(decay=1e-3, momentum=0.5)
+optimizer = Optimizer_SGD(decay=1e-3, momentum=0.9)
 
 # Train in loop
 for epoch in range(10001):
@@ -239,7 +239,7 @@ for epoch in range(10001):
         y = np.argmax(y, axis=1)
     accuracy = np.mean(predictions == y)
 
-    if epoch % 100 == 0:
+    if not epoch % 100:
         print(f'Epoch: {epoch}, ' + 
               f'Acc: {accuracy:.3f}, ' +
               f'Loss: {loss:.3f}, ' +
@@ -263,3 +263,10 @@ for epoch in range(10001):
     optimizer.update_params(dense1)
     optimizer.update_params(dense2)
     optimizer.post_update_params()
+
+
+# Different versions of Numpy/Python produce different outputs.
+# NNFS book uses:
+# Python 3.7.5
+# Numpy 1.15.0
+# Matplotlib 3.1.1
