@@ -291,7 +291,7 @@ loss_activation = Activation_Softmax_Loss_CategoricalCrossEntropy()
 
 # Create Optimizer
 # optimizer = Optimizer_SGD(decay=1e-3, momentum=0.85)
-optimizer = Optimizer_RMSprop(decay=1e-4)
+optimizer = Optimizer_RMSprop(learning_rate=0.02, decay=1e-4, rho=0.899)
 
 # Train in loop
 for epoch in range(10001):
