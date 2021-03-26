@@ -4,6 +4,12 @@ from nnfs.datasets import spiral_data
 
 nnfs.init()
 
+# Different versions of Numpy/Python produce different outputs.
+# NNFS book uses:
+# Python 3.7.5
+# Numpy 1.15.0
+# Matplotlib 3.1.1
+
 class Layer_Dense:  
     def __init__(self, n_inputs, n_neurons):
         # Initialize weights and biases.
@@ -407,8 +413,31 @@ for epoch in range(10001):
     optimizer.post_update_params()
 
 
-# Different versions of Numpy/Python produce different outputs.
-# NNFS book uses:
-# Python 3.7.5
-# Numpy 1.15.0
-# Matplotlib 3.1.1
+# VALIDATE THE MODEL
+# Create Test Data
+
+X_test, y_test = spiral_data(samples = 100, classes = 3)
+
+# Perform a forward pass of our testing data through this layer.
+dense1.forward(X_test)
+
+# Perform a forward pass through activation function
+# Takes output for first dense layer here.
+activation1.forward(dense1.output)
+
+# Perform forward pass through second Dense layer
+# Takes outputs of activation function of first layer as inputs
+dense2.forward(activation1.output)
+
+# Perform forward pass through activation/loss function
+# Takes output of second dense layer here and returns loss.
+loss = loss_activation.forward(dense2.output, y_test)
+
+# Calculate accuracy from output of activation2 and targets
+# Calculate values along first axis
+predictions = np.argmax(loss_activation.output, axis=1)
+if len(y_test.shape) == 2:
+    y_test = np.argmax(y_test, axis=1)
+accuracy = np.mean(predictions == y_test)
+
+print(f'Validation, Acc: {accuracy: .3f}, Loss: {loss:.3f}')
