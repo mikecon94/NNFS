@@ -11,7 +11,9 @@ nnfs.init()
 # Matplotlib 3.1.1
 
 class Layer_Dense:  
-    def __init__(self, n_inputs, n_neurons):
+    def __init__(self, n_inputs, n_neurons,
+                 weight_regularizer_l1=0, weight_regularizer_l2=0,
+                 bias_regularizer_l1=0, bias_regularizer_l2=0):
         # Initialize weights and biases.
         # Weights are (inputs, neurons) rather than (neurons, inputs)
         # This means we don't have to  transpose on every pass (discussed in Chapter 2)
@@ -21,6 +23,11 @@ class Layer_Dense:
         self.weights = 0.01 * np.random.randn(n_inputs, n_neurons)
         # Initialize a row vector of zeroes for weights.
         self.biases = np.zeros((1, n_neurons))
+        # Self Regularization Strength
+        self.weight_regularizer_l1 = weight_regularizer_l1
+        self.weight_regularizer_l2 = weight_regularizer_l2
+        self.bias_regularizer_l1 = bias_regularizer_l1
+        self.bias_regularizer_l2 = bias_regularizer_l2
     
     def forward(self, inputs):
         # Calculate output values from inputs, weights and biases.
@@ -80,6 +87,29 @@ class Loss:
         data_loss = np.mean(sample_losses)
         return data_loss
 
+    def regularization_loss(self, layer):
+        # Default to 0
+        regularization_loss = 0
+
+        # L1 Regularization - Weights
+        # Calculate only when factor greater than 0
+        if layer.weight_regularizer_l1 > 0:
+            regularization_loss += layer.weight_regularizer_l1 * np.sum(np.abs(layer.weights))
+
+        # L2 Regularization - Weights
+        if layer.weight_regularizer_l2 > 0:
+            regularization_loss += layer.weight_regularizer_l2 * np.sum(layer.weights * layer.weights)
+
+        # L1 Regularization - Biases
+        if layer.bias_regularizer_l1 > 0:
+            regularization_loss += layer.bias_regularizer_l1 * np.sum(np.abs(layer.biases))
+
+        # L2 Regularization - Biases
+        if layer.bias_regularizer_l2 > 0:
+            regularization_loss += layer.bias_regularizer_l2 * np.sum(layer.biases * layer.biases)
+
+        return regularization_loss
+
 # Cross Entropy Loss
 class Loss_CategoricalCrossEntropy(Loss):
     def forward(self, y_pred, y_true):
@@ -120,7 +150,6 @@ class Loss_CategoricalCrossEntropy(Loss):
         self.dinputs = -y_true /dvalues
         # Normalize gradient
         self.dinputs = self.dinputs / samples
-        return 1
 
 # Softmax Classifier - Combined Softmax activation
 # with cross-entropy loss for faster backward step.
@@ -345,7 +374,7 @@ class Optimizer_Adam:
 X, y = spiral_data(samples = 100, classes = 3)
 
 # Create Dense Layer with 2 input features & 64 output values (neurons).
-dense1 = Layer_Dense(2, 64)
+dense1 = Layer_Dense(2, 64, weight_regularizer_l2=5e-4, bias_regularizer_l2=5e-4)
 
 # Create ReLU activation to be used with Dense Layer
 activation1 = Activation_ReLU()
@@ -359,7 +388,7 @@ loss_activation = Activation_Softmax_Loss_CategoricalCrossEntropy()
 
 # Create Optimizer
 # optimizer = Optimizer_SGD(decay=1e-3, momentum=0.85)
-optimizer = Optimizer_Adam(learning_rate=0.05, decay=5e-7)
+optimizer = Optimizer_Adam(learning_rate=0.02, decay=5e-7)
 
 # Train in loop
 for epoch in range(10001):
@@ -378,7 +407,13 @@ for epoch in range(10001):
 
     # Perform a Forward pass through the activation/loss function
     # Takes the output of second dense layer here and return loss.
-    loss = loss_activation.forward(dense2.output, y)
+    data_loss = loss_activation.forward(dense2.output, y)
+    
+    # Calculate Regularization Penalty
+    regularization_loss = loss_activation.loss.regularization_loss(dense1) + \
+                          loss_activation.loss.regularization_loss(dense2)
+
+    loss = data_loss + regularization_loss
 
     # Calculate accuracy from output of activation2 and targets.
     # Calculate values along first axis.
@@ -390,7 +425,9 @@ for epoch in range(10001):
     if not epoch % 100:
         print(f'Epoch: {epoch}, ' + 
               f'Acc: {accuracy:.3f}, ' +
-              f'Loss: {loss:.3f}, ' +
+              f'Loss: {loss:.3f} (' +
+              f'Data Loss: {data_loss:.3f}, ' +
+              f'Reg Loss: {regularization_loss:.3f}), ' +
               f'LR: {optimizer.current_learning_rate}, ')
 
     # Backward Pass - Backpropagation.
