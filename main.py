@@ -445,7 +445,7 @@ for epoch in range(10001):
         y = np.argmax(y, axis=1)
     accuracy = np.mean(predictions == y)
 
-    if not epoch % 500:
+    if not epoch % 100:
         print(f'Epoch: {epoch}, ' + 
               f'Acc: {accuracy:.3f}, ' +
               f'Loss: {loss:.3f} (' +
