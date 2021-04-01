@@ -64,6 +64,22 @@ class Layer_Dense:
         # Gradient on Values / Inputs
         self.dinputs = np.dot(dvalues, self.weights.T)
 
+# Dropout
+class Layer_Dropout:
+    
+    def __init__(self, rate):
+        # Invert and store rate to success rate.
+        self.rate = 1 - rate
+    
+    def forward(self, inputs):
+        self.inputs = inputs
+        self.binary_mask = np.random.binomial(1, self.rate, size=inputs.shape) / \
+                           self.rate
+        self.output = inputs * self.binary_mask
+    
+    def backward(self, dvalues):
+        self.dinputs = dvalues * self.binary_mask
+
 # ReLU Activation
 class Activation_ReLU:
     def forward(self, inputs):
@@ -394,13 +410,16 @@ class Optimizer_Adam:
 # Create dataset
 # X is coordinates
 # y is the class
-X, y = spiral_data(samples = 100, classes = 3)
+X, y = spiral_data(samples = 1000, classes = 3)
 
 # Create Dense Layer with 2 input features & 64 output values (neurons).
 dense1 = Layer_Dense(2, 64, weight_regularizer_l2=5e-4, bias_regularizer_l2=5e-4)
 
 # Create ReLU activation to be used with Dense Layer
 activation1 = Activation_ReLU()
+
+# Create Dropout Layer
+dropout1 = Layer_Dropout(0.1)
 
 # Create second Dense layer with 64 input features (output of previous layer)
 # and 3 output values.
@@ -411,7 +430,7 @@ loss_activation = Activation_Softmax_Loss_CategoricalCrossEntropy()
 
 # Create Optimizer
 # optimizer = Optimizer_SGD(decay=1e-3, momentum=0.85)
-optimizer = Optimizer_Adam(learning_rate=0.02, decay=5e-7)
+optimizer = Optimizer_Adam(learning_rate=0.05, decay=5e-5)
 
 # Train in loop
 for epoch in range(10001):
@@ -423,9 +442,12 @@ for epoch in range(10001):
     # Takes output of first dense layer.
     activation1.forward(dense1.output)
 
+    # Perform a forward pass through Dropout layer
+    dropout1.forward(activation1.output)
+
     # Forward pass through second Dense layer.
-    # Takes output of activation function from layer 1.
-    dense2.forward(activation1.output)
+    # Takes output of activation function from layer 1 (after dropout).
+    dense2.forward(dropout1.output)
 
 
     # Perform a Forward pass through the activation/loss function
@@ -456,14 +478,9 @@ for epoch in range(10001):
     # Backward Pass - Backpropagation.
     loss_activation.backward(loss_activation.output, y)
     dense2.backward(loss_activation.dinputs)
-    activation1.backward(dense2.dinputs)
+    dropout1.backward(dense2.dinputs)
+    activation1.backward(dropout1.dinputs)
     dense1.backward(activation1.dinputs)
-
-    # Print Gradients
-    # print("Dense 1 Weights Gradients:\n", dense1.dweights)
-    # print("Dense 1 Biases Gradients:\n",dense1.dbiases)
-    # print("Dense 2 Weights Gradients:\n",dense2.dweights)
-    # print("Dense 2 Biases Gradients:\n",dense2.dbiases)
 
     # Apply optimized weights & biases to the 2 layers.
     # The layers store their parameters and gradients (calculated during backpropagation).
