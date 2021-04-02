@@ -452,7 +452,14 @@ class Optimizer_Adam:
 # Create dataset
 # X is coordinates
 # y is the class
-X, y = spiral_data(samples = 1000, classes = 3)
+X, y = spiral_data(samples = 100, classes = 2)
+
+# Reshape labels to be a list of lists
+# Inner list contains one output (either 0 or 1)
+# per each output neuron, 1 in this case
+# Previous: [0 1 1 0 1]
+# New: [[0] [1] [1] [0] [1]]
+y = y.reshape(-1, 1)
 
 # Create Dense Layer with 2 input features & 64 output values (neurons).
 dense1 = Layer_Dense(2, 64, weight_regularizer_l2=5e-4, bias_regularizer_l2=5e-4)
@@ -461,18 +468,23 @@ dense1 = Layer_Dense(2, 64, weight_regularizer_l2=5e-4, bias_regularizer_l2=5e-4
 activation1 = Activation_ReLU()
 
 # Create Dropout Layer
-dropout1 = Layer_Dropout(0.1)
+# dropout1 = Layer_Dropout(0.1)
 
 # Create second Dense layer with 64 input features (output of previous layer)
-# and 3 output values.
-dense2 = Layer_Dense(64, 3)
+# and 1 output value
+dense2 = Layer_Dense(64, 1)
+
+activation2 = Activation_Sigmoid()
 
 # Create Softmax Classifier's combined loss and activation
-loss_activation = Activation_Softmax_Loss_CategoricalCrossEntropy()
+# loss_activation = Activation_Softmax_Loss_CategoricalCrossEntropy()
+
+# Create loss function
+loss_function = Loss_BinaryCrossEntropy()
 
 # Create Optimizer
 # optimizer = Optimizer_SGD(decay=1e-3, momentum=0.85)
-optimizer = Optimizer_Adam(learning_rate=0.05, decay=5e-5)
+optimizer = Optimizer_Adam(decay=5e-7)
 
 # Train in loop
 for epoch in range(10001):
@@ -485,28 +497,33 @@ for epoch in range(10001):
     activation1.forward(dense1.output)
 
     # Perform a forward pass through Dropout layer
-    dropout1.forward(activation1.output)
+    # dropout1.forward(activation1.output)
 
     # Forward pass through second Dense layer.
     # Takes output of activation function from layer 1 (after dropout).
-    dense2.forward(dropout1.output)
-
+    dense2.forward(activation1.output)
+    
+    activation2.forward(dense2.output)
 
     # Perform a Forward pass through the activation/loss function
     # Takes the output of second dense layer here and return loss.
-    data_loss = loss_activation.forward(dense2.output, y)
+    data_loss = loss_function.calculate(activation2.output, y)
     
     # Calculate Regularization Penalty
-    regularization_loss = loss_activation.loss.regularization_loss(dense1) + \
-                          loss_activation.loss.regularization_loss(dense2)
+    regularization_loss = loss_function.regularization_loss(dense1) + \
+                          loss_function.regularization_loss(dense2)
 
     loss = data_loss + regularization_loss
 
     # Calculate accuracy from output of activation2 and targets.
     # Calculate values along first axis.
-    predictions = np.argmax(loss_activation.output, axis=1)
-    if len(y.shape) == 2:
-        y = np.argmax(y, axis=1)
+    # Used for probability distributions:
+    # predictions = np.argmax(loss_activation.output, axis=1)
+    # Binary Classifier validates output of 0 or 1.activation
+    predictions = (activation2.output > 0.5) * 1
+
+    # if len(y.shape) == 2:
+    #     y = np.argmax(y, axis=1)
     accuracy = np.mean(predictions == y)
 
     if not epoch % 100:
@@ -518,10 +535,11 @@ for epoch in range(10001):
               f'LR: {optimizer.current_learning_rate}, ')
 
     # Backward Pass - Backpropagation.
-    loss_activation.backward(loss_activation.output, y)
-    dense2.backward(loss_activation.dinputs)
-    dropout1.backward(dense2.dinputs)
-    activation1.backward(dropout1.dinputs)
+    loss_function.backward(activation2.output, y)
+    activation2.backward(loss_function.dinputs)
+    dense2.backward(activation2.dinputs)
+    # dropout1.backward(dense2.dinputs)
+    activation1.backward(dense2.dinputs)
     dense1.backward(activation1.dinputs)
 
     # Apply optimized weights & biases to the 2 layers.
@@ -535,7 +553,8 @@ for epoch in range(10001):
 # VALIDATE THE MODEL
 # Create Test Data
 
-X_test, y_test = spiral_data(samples = 100, classes = 3)
+X_test, y_test = spiral_data(samples = 100, classes = 2)
+y_test = y_test.reshape(-1, 1)
 
 # Perform a forward pass of our testing data through this layer.
 dense1.forward(X_test)
@@ -548,15 +567,17 @@ activation1.forward(dense1.output)
 # Takes outputs of activation function of first layer as inputs
 dense2.forward(activation1.output)
 
+activation2.forward(dense2.output)
+
 # Perform forward pass through activation/loss function
 # Takes output of second dense layer here and returns loss.
-loss = loss_activation.forward(dense2.output, y_test)
+loss = loss_function.calculate(activation2.output, y_test)
 
 # Calculate accuracy from output of activation2 and targets
 # Calculate values along first axis
-predictions = np.argmax(loss_activation.output, axis=1)
-if len(y_test.shape) == 2:
-    y_test = np.argmax(y_test, axis=1)
+predictions =(activation2.output > 0.5) * 1
+# if len(y_test.shape) == 2:
+#     y_test = np.argmax(y_test, axis=1)
 accuracy = np.mean(predictions == y_test)
 
 print(f'Validation, Acc: {accuracy: .3f}, Loss: {loss:.3f}')
