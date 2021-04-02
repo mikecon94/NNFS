@@ -117,6 +117,15 @@ class Activation_Softmax:
             # and add it to the array of sample gradients
             self.dinputs[index] = np.dot(jacobian_matrix, single_dvalues)
 
+# Sigmoid Activation
+class Activation_Sigmoid:
+    def forward(self, inputs):
+        self.inputs = inputs
+        self.output = 1 / (1 + np.exp(-inputs))
+    
+    def backward(self, dvalues):
+        self.dinputs = dvalues * (1 -self.output) * self.output
+
 # Base/Common Loss Class
 class Loss:
     # Calculates the data and regularization losses.
