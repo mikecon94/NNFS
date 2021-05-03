@@ -513,9 +513,14 @@ activation1 = Activation_ReLU()
 
 # Create second Dense layer with 64 input features (output of previous layer)
 # and 1 output value
-dense2 = Layer_Dense(64, 1)
+dense2 = Layer_Dense(64, 64)
 
-activation2 = Activation_Linear()
+activation2 = Activation_ReLU()
+
+# Create third Dense Layer with 64 input features
+# (Take output of previous layer here) and 1 output value.
+dense3 = Layer_Dense(64, 1)
+activation3 = Activation_Linear()
 
 # Create loss function
 loss_function = Loss_MeanSquaredError()
@@ -547,23 +552,26 @@ for epoch in range(10001):
     # Forward pass through second Dense layer.
     # Takes output of activation function from layer 1.
     dense2.forward(activation1.output)
-    
     activation2.forward(dense2.output)
+
+    dense3.forward(activation2.output)
+    activation3.forward(dense3.output)
 
     # Perform a Forward pass through the activation/loss function
     # Takes the output of second dense layer here and return loss.
-    data_loss = loss_function.calculate(activation2.output, y)
+    data_loss = loss_function.calculate(activation3.output, y)
     
     # Calculate Regularization Penalty
     regularization_loss = loss_function.regularization_loss(dense1) + \
-                          loss_function.regularization_loss(dense2)
+                          loss_function.regularization_loss(dense2) + \
+                          loss_function.regularization_loss(dense3)
 
     loss = data_loss + regularization_loss
 
     # Calculate accuracy from output of activation2 and targets.
     # We take absolute difference between predictions and ground truth values
     # and compare if differences are lower than given precision value.
-    predictions = activation2.output
+    predictions = activation3.output
     accuracy = np.mean(np.absolute(predictions - y) < accuracy_precision)
 
     if not epoch % 100:
@@ -575,8 +583,10 @@ for epoch in range(10001):
               f'LR: {optimizer.current_learning_rate}, ')
 
     # Backward Pass - Backpropagation.
-    loss_function.backward(activation2.output, y)
-    activation2.backward(loss_function.dinputs)
+    loss_function.backward(activation3.output, y)
+    activation3.backward(loss_function.dinputs)
+    dense3.backward(activation3.dinputs)
+    activation2.backward(dense3.dinputs)
     dense2.backward(activation2.dinputs)
     activation1.backward(dense2.dinputs)
     dense1.backward(activation1.dinputs)
@@ -586,15 +596,19 @@ for epoch in range(10001):
     optimizer.pre_update_params()
     optimizer.update_params(dense1)
     optimizer.update_params(dense2)
+    optimizer.update_params(dense3)
     optimizer.post_update_params()
 
+# Validation
 X_test, y_test = sine_data()
 
 dense1.forward(X_test)
 activation1.forward(dense1.output)
 dense2.forward(activation1.output)
 activation2.forward(dense2.output)
+dense3.forward(activation2.output)
+activation3.forward(dense3.output)
 
 plt.plot(X_test, y_test)
-plt.plot(X_test, activation2.output)
+plt.plot(X_test, activation3.output)
 plt.show()
