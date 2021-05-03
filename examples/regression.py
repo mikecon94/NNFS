@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import nnfs
 from nnfs.datasets import sine_data
 
@@ -17,7 +18,7 @@ class Loss_MeanSquaredError(Loss):
     def forward(self, y_pred, y_true):
         #Calculate Loss
         # Calculate mean across outputs, for each sample separately.
-        sample_losses = np.mean((y_true - y_pred)**2, axis=-1))
+        sample_losses = np.mean((y_true - y_pred)**2, axis=-1)
         return sample_losses
 
     def backward(self, dvalues, y_true):
