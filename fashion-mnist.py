@@ -1,6 +1,10 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import cv2
 import os
+import nnfs
+
+nnfs.init()
 
 # Loads a MNIST dataset
 def load_mnist_dataset(dataset, path):
@@ -41,3 +45,17 @@ print(flattened.shape)
 # 28x28 = 784
 X = X.reshape(X.shape[0], -1)
 X_test = X_test.reshape(X_test.shape[0], -1)
+
+# Shuffle the dataset
+keys = np.array(range(X.shape[0]))
+print(keys[:10])
+np.random.shuffle(keys)
+print(keys[:10])
+
+X = X[keys]
+y = y[keys]
+print(y[:15])
+
+plt.imshow((X[8].reshape(28, 28)))
+plt.show()
+print(y[8])
