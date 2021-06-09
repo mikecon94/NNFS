@@ -57,5 +57,5 @@ y = y[keys]
 print(y[:15])
 
 plt.imshow((X[8].reshape(28, 28)))
-plt.show()
+# plt.show()
 print(y[8])
