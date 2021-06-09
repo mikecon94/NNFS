@@ -1,3 +1,7 @@
+# THIS WAS REPLACED BY THE regression.py file in the root.
+# This was then changed to nnfs.py at the end of Chapter 19.
+# This file support classification problems.
+
 import numpy as np
 import nnfs
 from nnfs.datasets import spiral_data
