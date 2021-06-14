@@ -674,6 +674,47 @@ class Model:
         self.loss.remember_trainable_layers(
             self.trainable_layers
         )
+    
+    def evaluate(self, X_val, y_val, *, batch_size=None):
+        # Default value if batch_size isn't set.
+        validation_steps = 1
+
+        # Calculate number of steps
+        if batch_size is not None:
+            validation_steps = len(X_val) // batch_size
+            if validation_steps * batch_size < len(X_val):
+                validation_steps += 1
+
+        # Reset accumulated values in loss and accuracy objects
+        self.loss.new_pass()
+        self.accuracy.new_pass()
+        
+        # Iterate over steps
+        for step in range(validation_steps):
+            # If batch size is not set - train using one step and full dataset.
+            if batch_size is None:
+                batch_X = X_val
+                batch_y = y_val
+            else:
+                batch_X = X_val[
+                    step*batch_size:(step+1)*batch_size
+                ]
+                batch_y = y_val[
+                    step*batch_size:(step+1)*batch_size
+                ]
+            output = self.forward(batch_X, training=False)
+            self.loss.calculate(output, batch_y)
+            
+            # Get predictions and calculate accuracy
+            predictions = self.output_layer_activation.predictions(output)
+            self.accuracy.calculate(predictions, batch_y)
+
+        validation_loss = self.loss.calculate_accumulated()
+        validation_accuracy = self.accuracy.calculate_accumulated()
+
+        print(f'validation, ' +
+              f'acc: {validation_accuracy:.3f}, ' +
+              f'loss: {validation_loss:.3f}')
 
     def train(self, X, y, *, epochs=1, batch_size = None, print_every=1, validation_data=None):
         self.accuracy.init(y)
@@ -704,12 +745,10 @@ class Model:
             
         for epoch in range(1, epochs+1):
 
-            print(f'epoch: {epoch}')
-
-            # Reset accumulated values in loss and accuracy objects
+            print(f'epoch: {epoch}')          
+            # Reset accumulated values in loss and accuracy
             self.loss.new_pass()
             self.accuracy.new_pass()
-
             for step in range(train_steps):
             
                 # If batch size is not set - train using on step and full dataset.
@@ -761,39 +800,10 @@ class Model:
                   f'reg_loss: {epoch_regularization_loss:.3f}, ' +
                   f'lr: {self.optimizer.current_learning_rate:.3f}')
 
-
             if validation_data is not None:
-                # Reset accumulated values in loss and accuracy
-                self.loss.new_pass()
-                self.accuracy.new_pass()
-
-                # Iterate over steps
-                for step in range(validation_steps):
-                    # If batch size is not set - train using one step and full dataset.
-                    if batch_size is None:
-                        batch_X = X_val
-                        batch_y = y_val
-                    else:
-                        batch_X = X_val[
-                            step*batch_size:(step+1)*batch_size
-                        ]
-                        batch_y = y_val[
-                            step*batch_size:(step+1)*batch_size
-                        ]
-                    output = self.forward(batch_X, training=False)
-                    self.loss.calculate(output, batch_y)
-                    
-                    # Get predictions and calculate accuracy
-                    predictions = self.output_layer_activation.predictions(output)
-                    self.accuracy.calculate(predictions, batch_y)
-
-
-                validation_loss = self.loss.calculate_accumulated()
-                validation_accuracy = self.accuracy.calculate_accumulated()
-
-                print(f'validation, ' +
-                      f'acc: {accuracy:.3f}, ' +
-                      f'loss: {loss:.3f}')
+                # Evaluate the model:
+                # Look at examples/starred-expressions.py for *validation_data
+                self.evaluate(*validation_data, batch_size=batch_size)
 
     def forward(self, X, training):
         # Call forward method on the input layer
@@ -840,8 +850,6 @@ class Model:
         # in reversed order passing dinputs as a parameter
         for layer in reversed(self.layers):
             layer.backward(layer.next.dinputs)
-
-
 
 # Create dataset
 # X, y = spiral_data(samples=1000, classes=3)
@@ -894,3 +902,5 @@ model.set(
 
 model.finalize()
 model.train(X, y, validation_data=(X_test, y_test), epochs=10, batch_size=128, print_every=100)
+
+model.evaluate(X_test, y_test)
