@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import cv2
+import pickle
 import nnfs
 from nnfs.datasets import sine_data
 from nnfs.datasets import spiral_data
@@ -887,6 +888,19 @@ class Model:
         for parameter_set, layer in zip(parameters, self.trainable_layers):
             layer.set_parameters(*parameter_set)
 
+    # Save parameters to a file
+    def save_parameters(self, path):
+        # Open a file in the bianry-write mode
+        # and save parameters to it
+        with open(path, 'wb') as f:
+            pickle.dump(self.get_parameters(), f)
+        
+    # Load parameters from a file
+    def load_parameters(self, path):
+        # Open a file in birary read mode
+        with open(path, 'rb') as f:
+            self.set_parameters(pickle.load(f))
+
 # Create dataset
 # X, y = spiral_data(samples=1000, classes=3)
 # X_test, y_test = spiral_data(samples=100, classes=3)
@@ -918,28 +932,29 @@ y = y[keys]
 X = (X.reshape(X.shape[0], -1).astype(np.float32) - 127.5) / 127.5
 X_test = (X_test.reshape(X_test.shape[0], -1).astype(np.float32) - 127.5) / 127.5
 
-# Instantiate the model
-model = Model()
+def train_new_model(path):
+    # Instantiate the model
+    model = Model()
 
-# Add Layers
-model.add(Layer_Dense(X.shape[1], 128))
-model.add(Activation_ReLU())
-model.add(Layer_Dense(128, 128))
-model.add(Activation_ReLU())
-model.add(Layer_Dense(128, 10))
-model.add(Activation_Softmax())
+    # Add Layers
+    model.add(Layer_Dense(X.shape[1], 128))
+    model.add(Activation_ReLU())
+    model.add(Layer_Dense(128, 128))
+    model.add(Activation_ReLU())
+    model.add(Layer_Dense(128, 10))
+    model.add(Activation_Softmax())
+    model.set(
+        loss = Loss_CategoricalCrossEntropy(),
+        optimizer=Optimizer_Adam(decay=1e-3),
+        accuracy=Accuracy_Categorical()
+    )
+    model.finalize()
+    model.train(X, y, validation_data=(X_test, y_test), epochs=10, batch_size=128, print_every=100)
 
-model.set(
-    loss = Loss_CategoricalCrossEntropy(),
-    optimizer=Optimizer_Adam(decay=1e-3),
-    accuracy=Accuracy_Categorical()
-)
-
-model.finalize()
-model.train(X, y, validation_data=(X_test, y_test), epochs=10, batch_size=128, print_every=100)
-
-# Retrieve parameters
-parameters = model.get_parameters()
+    # Retrieve parameters
+    # parameters = model.get_parameters()
+    # Save model parameters
+    model.save_parameters(path)
 
 # New Model
 model = Model()
@@ -957,5 +972,6 @@ model.set(loss=Loss_CategoricalCrossEntropy(), accuracy=Accuracy_Categorical())
 
 model.finalize()
 
-model.set_parameters(parameters)
+# Load the parameters from the file from previously trained model
+model.load_parameters('fashion_mnist.parms')
 model.evaluate(X_test, y_test)
