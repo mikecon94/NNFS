@@ -921,6 +921,15 @@ class Model:
         # Open a file in binary write mode and save the model
         with open(path, 'wb') as f:
             pickle.dump(model, f)
+    
+    # Loads and returns a model
+    @staticmethod
+    def load(path):
+        # Open file in binary-read mode, load a model
+        with open(path, 'rb') as f:
+            model = pickle.load(f)
+        # Return a model
+        return model
 
 # Create dataset
 # X, y = spiral_data(samples=1000, classes=3)
@@ -977,22 +986,29 @@ def train_new_model(path):
     # Save model parameters
     model.save_parameters(path)
 
-# New Model
-model = Model()
-model.add(Layer_Dense(X.shape[1], 128))
-model.add(Activation_ReLU())
-model.add(Layer_Dense(128, 128))
-model.add(Activation_ReLU())
-model.add(Layer_Dense(128, 10))
-model.add(Activation_Softmax())
+# Create new model and load it with saved weights & biases
+def create_and_load_model(path):
+    # New Model
+    model = Model()
+    model.add(Layer_Dense(X.shape[1], 128))
+    model.add(Activation_ReLU())
+    model.add(Layer_Dense(128, 128))
+    model.add(Activation_ReLU())
+    model.add(Layer_Dense(128, 10))
+    model.add(Activation_Softmax())
 
-# Set loss and accuracy objects
-# We don't set optimizer object this time - no need to do it
-# as we aren't training the model.
-model.set(loss=Loss_CategoricalCrossEntropy(), accuracy=Accuracy_Categorical())
+    # Set loss and accuracy objects
+    # We don't set optimizer object this time - no need to do it
+    # as we aren't training the model.
+    model.set(loss=Loss_CategoricalCrossEntropy(), accuracy=Accuracy_Categorical())
 
-model.finalize()
+    model.finalize()
 
-# Load the parameters from the file from previously trained model
-model.load_parameters('fashion_mnist.parms')
+    # Load the parameters from the file from previously trained model
+    model.load_parameters(path)
+    model.evaluate(X_test, y_test)
+    # Save the full model
+    model.save('fashion_mnist.model')
+
+model = Model.load('fashion_mnist.model')
 model.evaluate(X_test, y_test)
