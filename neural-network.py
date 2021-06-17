@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import os
 import cv2
 import pickle
+import copy
 import nnfs
 from nnfs.datasets import sine_data
 from nnfs.datasets import spiral_data
@@ -900,6 +901,26 @@ class Model:
         # Open a file in birary read mode
         with open(path, 'rb') as f:
             self.set_parameters(pickle.load(f))
+
+    # Saves the model
+    def save(self, path):
+        # Make a deep copy of current model instance
+        model = copy.deepcopy(self)
+        # Reset accumulated values in loss and accuracy objects
+        model.loss.new_pass()
+        model.accuracy.new_pass()
+        # Remove data from input layer and gradients from loss object
+        model.input_layer.__dict__.pop('output', None)
+        model.loss.__dict__.pop('dinputs', None)
+
+        # For each layer remove inputs, output and dinputs properties
+        for layer in model.layers:
+            for property in ['inputs', 'output', 'dinputs', 'dweights', 'dbiases']:
+                layer.__dict__.pop(property, None)
+        
+        # Open a file in binary write mode and save the model
+        with open(path, 'wb') as f:
+            pickle.dump(model, f)
 
 # Create dataset
 # X, y = spiral_data(samples=1000, classes=3)
