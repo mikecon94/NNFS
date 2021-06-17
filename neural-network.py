@@ -66,6 +66,15 @@ class Layer_Dense:
 
         # Gradient on Values / Inputs
         self.dinputs = np.dot(dvalues, self.weights.T)
+    
+    # Retrieve layer parameters
+    def get_parameters(self):
+        return self.weights, self.biases
+    
+    # Set weights & biases in a layer instance
+    def set_parameters(self, weights, biases):
+        self.weights = weights
+        self.biases = biases
 
 # Input Layer - used as a previous layer for the first layer in the model.
 class Layer_Input:
@@ -621,10 +630,13 @@ class Model:
     # Set Loss & Optimizer
     # * parameter definitions notes that the subsequent parameters are keyword arguments.
     # No value is defined so they are required keyword arguments.
-    def set(self, *, loss, optimizer, accuracy):
-        self.loss = loss
-        self.optimizer = optimizer
-        self.accuracy = accuracy
+    def set(self, *, loss=None, optimizer=None, accuracy=None):
+        if loss is not None:
+            self.loss = loss
+        if optimizer is not None:
+            self.optimizer = optimizer
+        if accuracy is not None:
+           self.accuracy = accuracy
 
     def finalize(self):
         # Create and set the input layer
@@ -671,9 +683,11 @@ class Model:
                     Activation_Softmax_Loss_CategoricalCrossEntropy()
         
         # Update loss object with trainable layers
-        self.loss.remember_trainable_layers(
-            self.trainable_layers
-        )
+        # Only train layers if we parameters haven't be passed in initially.
+        if self.loss is not None:
+            self.loss.remember_trainable_layers(
+                self.trainable_layers
+            )
     
     def evaluate(self, X_val, y_val, *, batch_size=None):
         # Default value if batch_size isn't set.
@@ -851,6 +865,28 @@ class Model:
         for layer in reversed(self.layers):
             layer.backward(layer.next.dinputs)
 
+    # Retrieves and returns parameters of trainable layers
+    def get_parameters(self):
+        # create a list of params
+        parameters = []
+
+        # Iterate over trainable layers and get their params.
+        for layer in self.trainable_layers:
+            parameters.append(layer.get_parameters())
+        
+        # return the list
+        return parameters
+
+    # Update the model with new parameters
+    def set_parameters(self, parameters):
+        # Iterate over the parameters and layers
+        # and update each layers with each set of the parameters
+        # zip() takes a list of parameters and a list of layers and returns an iterator containing
+        # tuples of 0th elements of both lists, then the 1st elements of both lists, the 2nd elements from both
+        # lists, and so on
+        for parameter_set, layer in zip(parameters, self.trainable_layers):
+            layer.set_parameters(*parameter_set)
+
 # Create dataset
 # X, y = spiral_data(samples=1000, classes=3)
 # X_test, y_test = spiral_data(samples=100, classes=3)
@@ -858,7 +894,6 @@ def load_mnist_dataset(dataset, path):
     labels = os.listdir(os.path.join(path, dataset))
     X = []
     y = []
-
     for label in labels:
         for file in os.listdir(os.path.join(path, dataset, label)):
             image = cv2.imread(os.path.join(path, dataset, label, file), cv2.IMREAD_UNCHANGED)
@@ -903,4 +938,24 @@ model.set(
 model.finalize()
 model.train(X, y, validation_data=(X_test, y_test), epochs=10, batch_size=128, print_every=100)
 
+# Retrieve parameters
+parameters = model.get_parameters()
+
+# New Model
+model = Model()
+model.add(Layer_Dense(X.shape[1], 128))
+model.add(Activation_ReLU())
+model.add(Layer_Dense(128, 128))
+model.add(Activation_ReLU())
+model.add(Layer_Dense(128, 10))
+model.add(Activation_Softmax())
+
+# Set loss and accuracy objects
+# We don't set optimizer object this time - no need to do it
+# as we aren't training the model.
+model.set(loss=Loss_CategoricalCrossEntropy(), accuracy=Accuracy_Categorical())
+
+model.finalize()
+
+model.set_parameters(parameters)
 model.evaluate(X_test, y_test)
