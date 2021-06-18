@@ -889,6 +889,33 @@ class Model:
         for parameter_set, layer in zip(parameters, self.trainable_layers):
             layer.set_parameters(*parameter_set)
 
+    # Predicts on the samples
+    # Can still predict in batches.
+    # X should be shape (1, 784)
+    # Where 1 is number of samples and 784 is the number of features (image pixels)
+    def predict(self, X, *, batch_size=None):
+        # Default value if batch size is not being set
+        prediction_steps = 1
+        # Calculate the number of steps
+        if batch_size is not None:
+            prediction_steps = len(X) // batch_size
+            if prediction_steps * batch_size < len(X):
+                prediction_steps += 1            
+        # Model Ouputs
+        output = []
+        # Iterate over the steps / batches
+        for step in range(prediction_steps):
+            if batch_size is None:
+                batch_X = X
+            else:
+                batch_X = X[step*batch_size:(step+1)*batch_size]
+            
+            # Perform the forward pass
+            batch_output = self.forward(batch_X, training=False)
+            # Append batch prediction to list of predictions
+            output.append(batch_output)
+        return np.vstack(output)
+
     # Save parameters to a file
     def save_parameters(self, path):
         # Open a file in the bianry-write mode
@@ -1011,4 +1038,50 @@ def create_and_load_model(path):
     model.save('fashion_mnist.model')
 
 model = Model.load('fashion_mnist.model')
-model.evaluate(X_test, y_test)
+
+# Evaluate the model with test data
+# model.evaluate(X_test, y_test)
+
+# Predict on first 5 samples from validation dataset
+# and print the result
+confidences = model.predict(X_test[:5])
+print(confidences)
+predictions = model.output_layer_activation.predictions(confidences)
+print(predictions)
+print(y_test[:5])
+
+fashion_mnist_labels = {
+    0: 'T-shirt/top',
+    1: 'Trousers',
+    2: 'Pullover',
+    3: 'Dress',
+    4: 'Coat',
+    5: 'Sandal',
+    6: 'Shirt',
+    7: 'Sneaker',
+    8: 'Bag',
+    9: 'Ankle Boot'
+}
+
+for prediction in predictions:
+    print(fashion_mnist_labels[prediction])
+
+
+# Predict with images outside of the MNIST dataset
+image_data = cv2.imread('tshirt.png', cv2.IMREAD_GRAYSCALE)
+image_data = cv2.resize(image_data, (28, 28))
+image_data = 255 - image_data
+image_data = (image_data.reshape(1, -1).astype(np.float32) - 127.5) / 127.5
+confidences = model.predict(image_data)
+predictions = model.output_layer_activation.predictions(confidences)
+prediction = fashion_mnist_labels[predictions[0]]
+print("T-Shirt Input: " + prediction)
+
+image_data = cv2.imread('pants.png', cv2.IMREAD_GRAYSCALE)
+image_data = cv2.resize(image_data, (28, 28))
+image_data = 255 - image_data
+image_data = (image_data.reshape(1, -1).astype(np.float32) - 127.5) / 127.5
+confidences = model.predict(image_data)
+predictions = model.output_layer_activation.predictions(confidences)
+prediction = fashion_mnist_labels[predictions[0]]
+print("Trousers Input: " + prediction)
